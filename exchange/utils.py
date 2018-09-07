@@ -52,9 +52,9 @@ def insert_many(objects, using="default"):
     table = model._meta.db_table
     column_names = ",".join(con.ops.quote_name(f.column) for f in fields)
     placeholders = ",".join(("%s",) * len(fields))
-    con.cursor().executemany("insert into %s (%s) values (%s)"
-                             % (table, column_names, placeholders), parameters)
-    transaction.commit_unless_managed(using=using)
+    with transaction.atomic():
+        con.cursor().executemany("insert into %s (%s) values (%s)"
+                                 % (table, column_names, placeholders), parameters)
 
 
 def update_many(objects, fields=[], using="default"):
@@ -91,11 +91,11 @@ def update_many(objects, fields=[], using="default"):
     table = meta.db_table
     assignments = ",".join(("%s=%%s" % con.ops.quote_name(f.column))
                            for f in fields)
-    con.cursor().executemany("update %s set %s where %s=%%s"
-                             % (table, assignments,
-                                con.ops.quote_name(meta.pk.column)),
-                             parameters)
-    transaction.commit_unless_managed(using=using)
+    with transaction.atomic():
+        con.cursor().executemany("update %s set %s where %s=%%s"
+                                 % (table, assignments,
+                                    con.ops.quote_name(meta.pk.column)),
+                                 parameters)
 
 
 def memoize(ttl=None):
